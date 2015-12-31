@@ -1,0 +1,22 @@
+Question 1
+MPBOOTPHYS 将MP_BOOT线性地址转换为物理地址。boot.S进入内核之前可以物理地址可以直接使用线性地址代替，所以boot.S不需要宏
+MPBOOTPHYS.
+
+Question 2
+CPU进入trap之前要先使用栈，可能发生多个CPU同时陷入中断，所以需要单独分开每个CPU的内核栈.
+
+Question 3
+因为不同用户态下，内核地址是一样的，不需要改变内核虚拟地址指针.
+
+Challenge
+完成“去除ipc_send循环”的challenge。
+
+原理：
+如果目标进程暂时无法接收，本进程就yield，如果目标接收进程再次调用ipc_recv接收了该信息，则本进程被唤醒。
+
+实现方式：
+1. 为struct Env增加了一些域，记录进程是否正阻塞于sys_ipc_try_send调用和调用的参数
+2. 修改sys_ipc_try_send().sys_ipc_try_send()在发现目标进程并未请求接收时，不返回-E_IPC_NOT_RECV，而是将自己设置为
+ENV_NOT_RUNNABLE,然后调用sched_yield切换到其他进程。
+3. 修改sys_ipc_recv()。sys_ipc_recv()首先会检查有无正阻塞在sys_ipc_try_send的进程，如果没有，则像往常一样yield；如果有，
+则接收该进程的struct Env中存放的信息，并将其状态设置为ENV_RUNNABLE。
